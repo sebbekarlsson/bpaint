@@ -2,6 +2,9 @@
 > Simple C99 library for painting / drawing on a bitmap,  
 > with support for multi-threaded shader-like painting.
 
+## Example render
+<img width="600px" src="examples/march/sample.jpg">
+
 ## Example usage
 ```C
 #include <bpaint/bpaint.h>
@@ -47,6 +50,9 @@ int main(int argc, char *argv[]) {
     
     .n_y = 2 // N threads in the Y-axis
   });
+  
+  // tonemap
+  bpaint_canvas_tonemap(&canvas, BPAINT_TONEMAP_ACES, 2.2f);
 
   // Write the bitmap to disk.
   FILE *fp = fopen("image.bmp", "wb+");

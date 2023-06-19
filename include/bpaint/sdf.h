@@ -6,4 +6,6 @@
 
 float bpaint_sdf_line(BPV2 p, BPV2 a, BPV2 b, float thick);
 
+float bpaint_sdf_box(BPV3 p, BPV3 s);
+
 #endif

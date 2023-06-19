@@ -30,3 +30,32 @@ float bpaint_float_buffer_fabsf_fmaxf(float *values, uint32_t length) {
 
   return maxv;
 }
+
+uint32_t bpaint_float_bits_to_uint(float f) {
+  union BPaintFloatBitsToUint {
+    float f;
+    uint32_t i;
+  };
+
+  union BPaintFloatBitsToUint converted;
+  converted.f = f;
+  return converted.i;
+}
+
+float bpaint_smoothstep(float edge0, float edge1, float value) {
+  value = bpaint_clamp((value - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+  return value * value * (3.0f - 2.0 * value);
+}
+
+float bpaint_fract(float x) {
+  float f = floorf(x);
+  return x - f;
+}
+
+float bpaint_mix(float a, float b, float f) {
+  return a + (b - a) * f;
+}
+
+float bpaint_radians(float a) {
+  return a * M_PI / 180.0f;
+}

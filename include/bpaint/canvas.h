@@ -2,6 +2,7 @@
 #define BPAINT_CANVAS_H
 #include <bpaint/formats/format.h>
 #include <bpaint/shade_func.h>
+#include <bpaint/tonemap.h>
 #include <bpaint/v2.h>
 #include <bpaint/v3.h>
 #include <bpaint/v4.h>
@@ -73,6 +74,11 @@ int bpaint_canvas_line(BPaintCanvas *canvas, BPV2 a, BPV2 b, BPV4 color,
 
 int bpaint_canvas_plot(BPaintCanvas *canvas, float *values, uint32_t length,
                        BPV4 color, float thick);
+
+int bpaint_canvas_tonemap(BPaintCanvas* canvas, BPaintTonemapType tone, float gamma);
+int bpaint_canvas_tonemap_default(BPaintCanvas *canvas);
+
+int bpaint_canvas_fix(BPaintCanvas* canvas);
 
 int bpaint_canvas_write_to_disk(BPaintCanvas canvas, FILE *fp,
                                 BPaintFormat format);

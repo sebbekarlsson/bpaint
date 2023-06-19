@@ -1,3 +1,4 @@
+#include <bpaint/tonemap.h>
 #include <bpaint/canvas.h>
 #include <bpaint/formats/bmp.h>
 #include <bpaint/formats/format.h>
@@ -12,6 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+#include <float.h>
 
 
 static uint32_t clamp_index(BPaintCanvas canvas, uint32_t idx) {
@@ -480,6 +483,57 @@ int bpaint_canvas_write_to_disk(BPaintCanvas canvas, FILE *fp,
                                      canvas.config.height, fp);
   }; break;
   }
+
+  return 1;
+}
+
+int bpaint_canvas_tonemap(BPaintCanvas *canvas, BPaintTonemapType tone,
+                          float gamma) {
+  BPAINT_ASSERT_RETURN(canvas != 0, 0);
+  BPAINT_ASSERT_RETURN(canvas->data != 0, 0);
+
+  BPaintBlendMode mode = canvas->blend_mode;
+  bpaint_canvas_set_blend_mode(canvas, BPAINT_BLEND_MODE_REPLACE);
+
+  for (uint32_t x = 0; x < canvas->config.width; x++) {
+    for (uint32_t y = 0; y < canvas->config.height; y++) {
+      BPV4 pixel = bpaint_canvas_get_pixel_absolute(*canvas, x, y);
+      BPV3 rgb = (BPV3){ pixel.x, pixel.y, pixel.z };
+      rgb = bpaint_tonemap(rgb, tone, gamma);
+      bpaint_canvas_set_pixel_absolute(canvas, x, y, (BPV4){ rgb.x, rgb.y, rgb.z, pixel.w });
+    }
+  }
+
+  bpaint_canvas_set_blend_mode(canvas, mode);
+
+  return 1;
+}
+int bpaint_canvas_tonemap_default(BPaintCanvas *canvas) {
+  BPAINT_ASSERT_RETURN(canvas != 0, 0);
+  BPAINT_ASSERT_RETURN(canvas->data != 0, 0);
+
+  return bpaint_canvas_tonemap(canvas, BPAINT_TONEMAP_ACES, 2.2f);
+}
+
+int bpaint_canvas_fix(BPaintCanvas *canvas) {
+    BPAINT_ASSERT_RETURN(canvas != 0, 0);
+  BPAINT_ASSERT_RETURN(canvas->data != 0, 0);
+
+  BPaintBlendMode mode = canvas->blend_mode;
+  bpaint_canvas_set_blend_mode(canvas, BPAINT_BLEND_MODE_REPLACE);
+
+  for (uint32_t x = 0; x < canvas->config.width; x++) {
+    for (uint32_t y = 0; y < canvas->config.height; y++) {
+      BPV4 pixel = bpaint_canvas_get_pixel_absolute(*canvas, x, y);
+      if (isinf(pixel.x) || isnan(pixel.x) || fabsf(pixel.x) >= FLT_MAX) pixel.x = 0.0f;
+      if (isinf(pixel.y) || isnan(pixel.y) || fabsf(pixel.y) >= FLT_MAX) pixel.y = 0.0f;
+      if (isinf(pixel.z) || isnan(pixel.z) || fabsf(pixel.z) >= FLT_MAX) pixel.z = 0.0f;
+      
+      bpaint_canvas_set_pixel_absolute(canvas, x, y, pixel);
+    }
+  }
+
+  bpaint_canvas_set_blend_mode(canvas, mode);
 
   return 1;
 }

@@ -69,5 +69,6 @@ set(BPAINT_DEPS
 target_link_libraries(bpaint_e PUBLIC ${BPAINT_DEPS})
 target_link_libraries(bpaint_shared PUBLIC ${BPAINT_DEPS})
 target_link_libraries(bpaint_static PUBLIC ${BPAINT_DEPS})
-# add_subdirectory(test)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples/march)
 
