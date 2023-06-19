@@ -1,3 +1,4 @@
+#include "bpaint/formats/bmp.h"
 #include <bpaint/alias.h>
 #include <bpaint/bpaint.h>
 #include <bpaint/canvas.h>
@@ -8,6 +9,87 @@
 #include <bpaint/v3.h>
 #include <math.h>
 #include <stdbool.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <time.h>
+
+#define PORT 8080
+#define MAX_BUFFER 98192
+
+static int serve(uint8_t* data, uint64_t size) {
+    int server_fd, new_socket;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+
+    // Create a socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Forcefully attaching socket to the port
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+    // Bind the socket to the port
+    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (listen(server_fd, 3) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    if ((new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
+        perror("accept");
+        exit(EXIT_FAILURE);
+    }
+
+
+    // Construct an HTTP response
+    char response[MAX_BUFFER];
+    sprintf(response, 
+            "HTTP/1.1 200 OK\n"
+            "Content-Type: image/bmp\n"
+            "Content-Length: %zu\n\n", size);
+
+    // Send the headers first
+    send(new_socket, response, strlen(response), 0);
+
+    // Then send the image data
+    send(new_socket, data, size, 0);
+
+    clock_t before = clock();
+
+    clock_t now = clock();
+
+    double diff = (now - before) / (double) CLOCKS_PER_SEC * 1000.0f;
+
+    while (diff < 2000.0f) {
+      now = clock();
+      diff = (now - before) / (double) CLOCKS_PER_SEC * 1000.0f;
+    }
+
+
+    close(new_socket);
+
+    return 0;
+}
+
 
 #define MARCH_STEPS 100
 #define MARCH_NEAR 0.001f
@@ -127,7 +209,7 @@ static BPV4 my_shade_func(uint32_t idx, BPV2 fc, BPV2 res) {
 }
 
 int main(int argc, char *argv[]) {
-  int w = 1920;
+  int w = 720;
   int h = w / 16 * 9;
 
   // create a new canvas.
@@ -148,6 +230,11 @@ int main(int argc, char *argv[]) {
                                   .n_y = 8 // N threads in the Y-axis
                               });
 
+  /*  uint8_t* tmp = (uint8_t*)calloc(canvas.size_bytes, sizeof(uint8_t));
+  bpaint_write_to_buffer__bmp(&canvas.data[0], canvas.config.width, canvas.config.height, &tmp[0]);
+  serve(tmp, (uint64_t)canvas.size_bytes);
+  free(tmp);
+  tmp = 0;*/
   // Write the bitmap to disk.
   FILE *fp = fopen("image.bmp", "wb+");
   bpaint_canvas_write_to_disk(canvas, fp, BPAINT_FORMAT_BMP);
@@ -157,3 +244,7 @@ int main(int argc, char *argv[]) {
   bpaint_canvas_destroy(&canvas);
   return 0;
 }
+
+
+
+
